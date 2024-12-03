@@ -1,101 +1,165 @@
-import Image from "next/image";
+"use client"
+import { Client } from "@stomp/stompjs";
+import { useState, useEffect, useRef } from "react";
 
-export default function Home() {
+
+
+export default function StompWebSocketPage() {
+  // console.info("StompWebSocketPage mounted");
+  const [socketUrl, setSocketUrl] = useState("ws://localhost:8080/ws");
+  const [topic, setTopic] = useState("/topic/miniticker/BTCUSDT");
+  const [messageText, setMessageText] = useState("");
+  const [messages, setMessages] = useState<string[]>([]);
+  const [isConnected, setIsConnected] = useState(false);
+
+  const clientRef = useRef<Client | null>(null);
+  const subscriptionRef = useRef<{unsubscribe: () => void} | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      clientRef.current = new Client({
+        brokerURL: socketUrl,
+        onConnect: () => {
+          console.log("连接成功:",socketUrl);
+          setIsConnected(true);
+          subscribeToTopic();
+        },
+        onStompError: (frame) => {
+          console.error("连接错误: " + frame.headers["message"]);
+          setIsConnected(false);
+        },
+        onDisconnect: () => {
+          setIsConnected(false);
+        }
+      });
+    }
+
+    return () => {
+      if (clientRef.current) {
+        clientRef.current.deactivate();
+      }
+    };
+  }, [socketUrl]);
+
+  const connectToStomp = () => {
+    if (clientRef.current) {
+      clientRef.current.activate();
+    }
+  };
+
+  const subscribeToTopic = () => {
+    if (clientRef.current && isConnected) {
+      // 取消之前的订阅
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+      }
+
+      // 重新订阅新主题
+      subscriptionRef.current = clientRef.current.subscribe(topic, (message) => {
+        try {
+          setMessages((prevMessages) => [...prevMessages, message.body]);
+        } catch (error) {
+          console.error("消息解析错误:", error);
+        }
+      });
+    }
+  };
+
+  const sendMessage = () => {
+    if (clientRef.current && isConnected && messageText) {
+      clientRef.current.publish({
+        destination: "/app/subscribe",
+        body: JSON.stringify({ content: messageText })
+      });
+      setMessageText('');
+    }
+  };
+
+  const disconnectFromStomp = () => {
+    if (clientRef.current) {
+      clientRef.current.deactivate();
+    }
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="p-6 max-w-2xl mx-auto">
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold">STOMP WebSocket Client</h1>
+        
+        <div className="flex space-x-2">
+          <input
+            type="text"
+            placeholder="WebSocket URL"
+            value={socketUrl}
+            onChange={(e) => setSocketUrl(e.target.value)}
+            className="flex-grow p-2 border rounded"
+            disabled={isConnected}
+          />
+           {!isConnected ? (
+            <button 
+              onClick={connectToStomp} 
+              className="bg-blue-500 text-white p-2 rounded"
+            >
+              连接
+            </button>
+          ) : (
+            <button 
+              onClick={disconnectFromStomp} 
+              className="bg-red-500 text-white p-2 rounded"
+            >
+              断开
+            </button>
+          )}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {isConnected && (
+          <div className="flex space-x-2">
+            <input
+              type="text"
+              placeholder="主题"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              className="flex-grow p-2 border rounded"
+            />
+            <button 
+              onClick={subscribeToTopic} 
+              className="bg-green-500 text-white p-2 rounded"
+            >
+              订阅
+            </button>
+          </div>
+        )}
+
+        {isConnected && (
+          <div className="flex space-x-2">
+            <input
+              type="text"
+              placeholder="发送消息"
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              className="flex-grow p-2 border rounded"
+            />
+            <button 
+              onClick={sendMessage}
+              className="bg-purple-500 text-white p-2 rounded"
+            >
+              发送
+            </button>
+          </div>
+        )}
+
+        <div className="border rounded h-64 overflow-y-auto">
+          <h3 className="p-2 bg-gray-100 sticky top-0">接收到的消息:{messages.length}</h3>
+          {messages.map((msg, index) => (
+            <div 
+              key={index} 
+              className="p-2 border-b last:border-0 text-sm"
+            >
+              {msg}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
