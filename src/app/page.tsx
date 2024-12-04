@@ -60,7 +60,7 @@ export default function StompWebSocketPage() {
       subscriptionRef.current = clientRef.current.subscribe(topic, (message) => {
         try {
           console.log("接收到消息:", message);
-          setMessages((prevMessages) => [...prevMessages, message.body]);
+          setMessages((prevMessages) => [ message.body,...prevMessages]);
         } catch (error) {
           console.error("消息解析错误:", error);
         }
