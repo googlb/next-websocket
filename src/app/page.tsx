@@ -8,7 +8,9 @@ export default function StompWebSocketPage() {
   // console.info("StompWebSocketPage mounted");
   const [socketUrl, setSocketUrl] = useState("ws://localhost:8080/ws");
   const [topic, setTopic] = useState("/topic/miniticker/BTCUSDT");
+  const [destination,setDestination] = useState("/app/subscribe");
   const [messageText, setMessageText] = useState("");
+  const [messageParams, setMessageParams] = useState([{ key: "", value: "" }]);
   const [messages, setMessages] = useState<string[]>([]);
   const [isConnected, setIsConnected] = useState(false);
 
@@ -57,6 +59,7 @@ export default function StompWebSocketPage() {
       // 重新订阅新主题
       subscriptionRef.current = clientRef.current.subscribe(topic, (message) => {
         try {
+          console.log("接收到消息:", message);
           setMessages((prevMessages) => [...prevMessages, message.body]);
         } catch (error) {
           console.error("消息解析错误:", error);
@@ -66,13 +69,41 @@ export default function StompWebSocketPage() {
   };
 
   const sendMessage = () => {
-    if (clientRef.current && isConnected && messageText) {
-      clientRef.current.publish({
-        destination: "/app/subscribe",
-        body: JSON.stringify({ content: messageText })
-      });
-      setMessageText('');
+    console.log("尝试发送消息:", messageParams);
+    
+    if (!clientRef.current || !isConnected) {
+      console.error("WebSocket 客户端未连接");
+      return;
     }
+  
+    const params = messageParams.reduce((acc: { [key: string]: string }, { key, value }) => {
+      if (key && value) acc[key] = value;
+      return acc;
+    }, {});
+  
+    try {
+      clientRef.current.publish({
+        destination: destination,
+        body: JSON.stringify(params)
+      });
+      console.log("成功发送消息:", JSON.stringify(params));
+    } catch (error) {
+      console.error("发送消息失败:", error);
+    }
+  };
+  const addParameterRow = () => {
+    setMessageParams([...messageParams, { key: "", value: "" }]);
+  };
+
+  const removeParameterRow = (index: number) => {
+    setMessageParams(messageParams.filter((_, i) => i !== index));
+  };
+
+  const updateParameter = (index: number, field: string, value: string) => {
+    const updatedParams = messageParams.map((param, i) =>
+      i === index ? { ...param, [field]: value } : param
+    );
+    setMessageParams(updatedParams);
   };
 
   const disconnectFromStomp = () => {
@@ -134,11 +165,18 @@ export default function StompWebSocketPage() {
           <div className="flex space-x-2">
             <input
               type="text"
+              placeholder="发送目的地"
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+              className="flex-grow p-2 border rounded"
+            />
+            {/* <input
+              type="text"
               placeholder="发送消息"
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
               className="flex-grow p-2 border rounded"
-            />
+            /> */}
             <button 
               onClick={sendMessage}
               className="bg-purple-500 text-white p-2 rounded"
@@ -147,6 +185,38 @@ export default function StompWebSocketPage() {
             </button>
           </div>
         )}
+                    <div>
+              <button 
+                onClick={addParameterRow} 
+                className="bg-teal-500 text-white p-2 rounded mb-2"
+              >
+                添加参数
+              </button>
+            </div>
+            {messageParams.map((_, index) => (
+              <div key={index} className="flex space-x-2 items-center">
+                <input
+                  type="text"
+                  placeholder="参数名"
+                  value={messageParams[index].key}
+                  onChange={(e) => updateParameter(index, 'key', e.target.value)}
+                  className="flex-grow p-2 border rounded"
+                />
+                <input
+                  type="text"
+                  placeholder="参数值"
+                  value={messageParams[index].value}
+                  onChange={(e) => updateParameter(index, 'value', e.target.value)}
+                  className="flex-grow p-2 border rounded"
+                />
+                <button 
+                  onClick={() => removeParameterRow(index)} 
+                  className="bg-red-500 text-white p-2 rounded"
+                >
+                  删除
+                </button>
+              </div>
+            ))}
 
         <div className="border rounded h-64 overflow-y-auto">
           <h3 className="p-2 bg-gray-100 sticky top-0">接收到的消息:{messages.length}</h3>
