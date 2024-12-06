@@ -1,7 +1,9 @@
-"use client"
+"use client";
 import { Client } from "@stomp/stompjs";
 import { useState, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 // 定义 messageParam 的接口
 interface MessageParam {
@@ -13,7 +15,9 @@ export default function StompWebSocketPage() {
   const [socketUrl, setSocketUrl] = useState("ws://localhost:8080/ws");
   const [topic, setTopic] = useState("/topic/miniticker/BTCUSDT");
   const [destination, setDestination] = useState("/app/subscribe");
-  const [messageParams, setMessageParams] = useState<MessageParam[]>([{ key: "", value: "" }]);
+  const [messageParams, setMessageParams] = useState<MessageParam[]>([
+    { key: "", value: "" },
+  ]);
   const [jsonMessage, setJsonMessage] = useState("{}"); // 新增的状态
   const [messages, setMessages] = useState<string[]>([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -59,17 +63,19 @@ export default function StompWebSocketPage() {
         subscriptionRef.current.unsubscribe();
       }
 
-      subscriptionRef.current = clientRef.current.subscribe(topic, (message) => {
-        try {
-          console.log("接收到消息:", message);
-          setMessages((prevMessages) => [ message.body,...prevMessages]);
-        } catch (error) {
-          console.error("消息解析错误:", error);
+      subscriptionRef.current = clientRef.current.subscribe(
+        topic,
+        (message) => {
+          try {
+            console.log("接收到消息:", message);
+            setMessages((prevMessages) => [message.body, ...prevMessages]);
+          } catch (error) {
+            console.error("消息解析错误:", error);
+          }
         }
-      });
+      );
     }
   };
-
 
   const sendMessage = () => {
     console.log("尝试发送消息:", jsonMessage);
@@ -134,7 +140,10 @@ export default function StompWebSocketPage() {
         try {
           // 尝试将输入解析为 JSON
           const parsedValue = JSON.parse(value);
-          return { ...param, value: Array.isArray(parsedValue) ? parsedValue : value };
+          return {
+            ...param,
+            value: Array.isArray(parsedValue) ? parsedValue : value,
+          };
         } catch {
           // 如果解析失败，按字符串处理
           return { ...param, value };
@@ -159,7 +168,7 @@ export default function StompWebSocketPage() {
         <h1 className="text-2xl font-bold">STOMP WebSocket Client</h1>
 
         <div className="flex space-x-2">
-          <input
+          <Input
             type="text"
             placeholder="WebSocket URL"
             value={socketUrl}
@@ -168,11 +177,17 @@ export default function StompWebSocketPage() {
             disabled={isConnected}
           />
           {!isConnected ? (
-            <Button onClick={connectToStomp} className="bg-blue-500 text-white p-2 rounded">
+            <Button
+              onClick={connectToStomp}
+              className="bg-blue-500 text-white "
+            >
               连接
             </Button>
           ) : (
-            <Button onClick={disconnectFromStomp} variant="destructive">
+            <Button
+              onClick={disconnectFromStomp}
+              className="bg-red-500 text-white "
+            >
               断开
             </Button>
           )}
@@ -180,89 +195,100 @@ export default function StompWebSocketPage() {
 
         {isConnected && (
           <div className="flex space-x-2">
-            <input
+            <Input
               type="text"
               placeholder="主题"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               className="flex-grow p-2 border rounded"
             />
-            <button onClick={subscribeToTopic} className="bg-green-500 text-white p-2 rounded">
+            <Button
+              onClick={subscribeToTopic}
+              className="bg-green-500 text-white "
+            >
               订阅
-            </button>
+            </Button>
           </div>
         )}
 
         {isConnected && (
           <div className="flex space-x-2">
-            <input
+            <Input
               type="text"
               placeholder="发送目的地"
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
               className="flex-grow p-2 border rounded"
             />
-            <button onClick={sendMessage} className="bg-purple-500 text-white p-2 rounded">
+            <Button onClick={sendMessage} className="bg-purple-500 text-white ">
               发送
-            </button>
+            </Button>
           </div>
         )}
 
         <div>
-          <button onClick={addParameterRow} className="bg-teal-500 text-white p-2 rounded mb-2">
+          <Button
+            onClick={addParameterRow}
+            className="bg-teal-500 text-white  mb-2"
+          >
             添加参数
-          </button>
+          </Button>
         </div>
 
         {messageParams.map((param, index) => (
           <div key={index} className="flex space-x-2 items-center">
-            <input
+            <Input
               type="text"
               placeholder="参数名"
               value={param.key}
               onChange={(e) => updateParameter(index, "key", e.target.value)}
               className="flex-grow p-2 border rounded"
             />
-            <input
+            <Input
               type="text"
               placeholder="参数值 (支持 JSON 格式)"
-              value={typeof param.value === "string" ? param.value : JSON.stringify(param.value)}
+              value={
+                typeof param.value === "string"
+                  ? param.value
+                  : JSON.stringify(param.value)
+              }
               onChange={(e) => updateParameter(index, "value", e.target.value)}
               className="flex-grow p-2 border rounded"
             />
-            <button
+            <Button
               onClick={() => removeParameterRow(index)}
-              className="bg-red-500 text-white p-2 rounded"
+              className="bg-red-500 text-white "
             >
               删除
-            </button>
+            </Button>
           </div>
         ))}
 
-
-{isConnected && (
+        {isConnected && (
           <div className="flex flex-col space-y-2">
-            <input
+            <Input
               type="text"
               placeholder="发送目的地"
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
               className="flex-grow p-2 border rounded"
             />
-            <textarea
+            <Textarea
               placeholder="输入 JSON 消息体"
               value={jsonMessage}
               onChange={(e) => setJsonMessage(e.target.value)}
               className="flex-grow p-2 border rounded h-32"
             />
-            <button onClick={sendMessage} className="bg-purple-500 text-white p-2 rounded">
+            <Button onClick={sendMessage} className="bg-green-500 text-white ">
               发送
-            </button>
+            </Button>
           </div>
         )}
 
         <div className="border rounded h-64 overflow-y-auto">
-          <h3 className="p-2 bg-gray-100 sticky top-0">接收到的消息: {messages.length}</h3>
+          <h3 className="p-2 bg-gray-100 sticky top-0">
+            接收到的消息: {messages.length}
+          </h3>
           {messages.map((msg, index) => (
             <div key={index} className="p-2 border-b last:border-0 text-sm">
               {msg}
