@@ -13,6 +13,7 @@ export default function StompWebSocketPage() {
   const [topic, setTopic] = useState("/topic/miniticker/BTCUSDT");
   const [destination, setDestination] = useState("/app/subscribe");
   const [messageParams, setMessageParams] = useState<MessageParam[]>([{ key: "", value: "" }]);
+  const [jsonMessage, setJsonMessage] = useState("{}"); // 新增的状态
   const [messages, setMessages] = useState<string[]>([]);
   const [isConnected, setIsConnected] = useState(false);
 
@@ -68,7 +69,29 @@ export default function StompWebSocketPage() {
     }
   };
 
+
   const sendMessage = () => {
+    console.log("尝试发送消息:", jsonMessage);
+
+    if (!clientRef.current || !isConnected) {
+      console.error("WebSocket 客户端未连接");
+      return;
+    }
+
+    try {
+      const params = JSON.parse(jsonMessage); // 解析 JSON 字符串为对象
+
+      clientRef.current.publish({
+        destination: destination,
+        body: JSON.stringify(params),
+      });
+
+      console.log("成功发送消息:", JSON.stringify(params));
+    } catch (error) {
+      console.error("发送消息失败或JSON解析错误:", error);
+    }
+  };
+  const sendParameterMessage = () => {
     console.log("尝试发送消息:", messageParams);
 
     if (!clientRef.current || !isConnected) {
@@ -214,6 +237,28 @@ export default function StompWebSocketPage() {
             </button>
           </div>
         ))}
+
+
+{isConnected && (
+          <div className="flex flex-col space-y-2">
+            <input
+              type="text"
+              placeholder="发送目的地"
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+              className="flex-grow p-2 border rounded"
+            />
+            <textarea
+              placeholder="输入 JSON 消息体"
+              value={jsonMessage}
+              onChange={(e) => setJsonMessage(e.target.value)}
+              className="flex-grow p-2 border rounded h-32"
+            />
+            <button onClick={sendMessage} className="bg-purple-500 text-white p-2 rounded">
+              发送
+            </button>
+          </div>
+        )}
 
         <div className="border rounded h-64 overflow-y-auto">
           <h3 className="p-2 bg-gray-100 sticky top-0">接收到的消息: {messages.length}</h3>
