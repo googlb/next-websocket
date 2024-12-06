@@ -1,6 +1,7 @@
 "use client"
 import { Client } from "@stomp/stompjs";
 import { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button"
 
 // 定义 messageParam 的接口
 interface MessageParam {
@@ -167,13 +168,13 @@ export default function StompWebSocketPage() {
             disabled={isConnected}
           />
           {!isConnected ? (
-            <button onClick={connectToStomp} className="bg-blue-500 text-white p-2 rounded">
+            <Button onClick={connectToStomp} className="bg-blue-500 text-white p-2 rounded">
               连接
-            </button>
+            </Button>
           ) : (
-            <button onClick={disconnectFromStomp} className="bg-red-500 text-white p-2 rounded">
+            <Button onClick={disconnectFromStomp} variant="destructive">
               断开
-            </button>
+            </Button>
           )}
         </div>
 
