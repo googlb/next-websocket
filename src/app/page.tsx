@@ -163,10 +163,10 @@ export default function StompWebSocketPage() {
   };
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <div className="space-y-4">
-        <h1 className="text-2xl font-bold">STOMP WebSocket Client</h1>
+    <div className="mx-full">
 
+      <div className="space-y-4 max-w-2xl mx-auto">
+        
         <div className="flex space-x-2">
           <Input
             type="text"
