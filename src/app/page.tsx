@@ -16,8 +16,8 @@ import { Label } from "@/components/ui/label";
 
 export default function StompWebSocketPage() {
   const [socketUrl, setSocketUrl] = useState("ws://localhost:8080/ws");
-  const [topic, setTopic] = useState("/topic/miniticker/BTCUSDT");
-  const [destination, setDestination] = useState("/app/subscribe");
+  const [topic, setTopic] = useState("/v1/topic/miniticker/BTCUSDT");
+  const [destination, setDestination] = useState("/v1/subscribe/");
 
   const [jsonMessage, setJsonMessage] = useState("{}"); // 新增的状态
   const [messages, setMessages] = useState<string[]>([]);
@@ -61,6 +61,7 @@ export default function StompWebSocketPage() {
   };
 
   const subscribeToTopic = () => {
+    console.log("尝试订阅主题:", topic);
     if (clientRef.current && isConnected) {
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe();
@@ -77,6 +78,7 @@ export default function StompWebSocketPage() {
           }
         }
       );
+      console.log("订阅成功:", topic);
     }
   };
 
