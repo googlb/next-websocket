@@ -235,7 +235,7 @@ export default function StompWebSocketPage() {
                 清空消息
               </Button>
             </div>
-            <div className="flex my-2 bg-gray-100">
+            <div className="flex my-2 bg-gray-100 gap-2">
               接收到的消息: {messages.length}
             </div>
             <div className="rounded-md border p-4  max-h-[50vh] min-h-[80vh] overflow-y-auto ">
