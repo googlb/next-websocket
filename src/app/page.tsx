@@ -1,4 +1,5 @@
 "use client";
+
 import { Client } from "@stomp/stompjs";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {  useToast } from "@/hooks/use-toast";
+import { LoaderCircle } from "lucide-react";
 
 export default function StompWebSocketPage() {
   const [socketUrl, setSocketUrl] = useState("ws://localhost:8080/ws");
@@ -23,6 +25,7 @@ export default function StompWebSocketPage() {
   const [jsonMessage, setJsonMessage] = useState("{}"); // 新增的状态
   const [messages, setMessages] = useState<string[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [formatAsJson, setFormatAsJson] = useState(true); // 控制是否格式化为 JSON
   const [isCollapsed, setIsCollapsed] = useState(false); // 控制 JSON 是否折叠
   const { toast } = useToast()
@@ -35,9 +38,13 @@ export default function StompWebSocketPage() {
       clientRef.current = new Client({
         brokerURL: socketUrl,
         onConnect: () => {
+          
           console.log("连接成功:", socketUrl);
           setIsConnected(true);
           subscribeToTopic();
+          setTimeout(() => {
+            setIsConnecting(false);
+            },1000)
         },
         onStompError: (frame) => {
           console.error("连接错误: " + frame.headers["message"]);
@@ -51,14 +58,16 @@ export default function StompWebSocketPage() {
           setIsConnected(false);
         },
         onWebSocketError: (error) => {
-          showToast("连接错误.", "There was a problem with your request.");
+          
+          showToast("连接错误.", 'onWebSocketError');
           console.error("onWebSocketError 错误:", error);
           setIsConnected(false);
           if(clientRef.current){
             clientRef.current.deactivate();
           }
-          
-          
+          setTimeout(() => {
+          setIsConnecting(false);
+          },1000)
         },
       });
     }
@@ -80,10 +89,14 @@ export default function StompWebSocketPage() {
   }, [socketUrl]);
 
   const connectToStomp = () => {
-    console.log("尝试连接 WebSocket 客户端:", socketUrl);
-    if (clientRef.current) {
-      clientRef.current.activate();
+    if(!isConnecting){
+      console.log("尝试连接 WebSocket 客户端:", socketUrl);
+      setIsConnecting(true);
+      if (clientRef.current) {
+        clientRef.current.activate();
+      }
     }
+    
   };
 
   const subscribeToTopic = () => {
@@ -165,7 +178,7 @@ export default function StompWebSocketPage() {
                   onClick={connectToStomp}
                   className="bg-blue-500 text-white "
                 >
-                  连接
+                  {isConnecting?<LoaderCircle className=" animate-spin"  />:'连接'}
                 </Button>
               ) : (
                 <Button
