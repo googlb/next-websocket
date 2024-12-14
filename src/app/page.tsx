@@ -13,6 +13,7 @@ import ReactJson from "react-json-view";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import {  useToast } from "@/hooks/use-toast";
 
 export default function StompWebSocketPage() {
   const [socketUrl, setSocketUrl] = useState("ws://localhost:8080/ws");
@@ -24,6 +25,7 @@ export default function StompWebSocketPage() {
   const [isConnected, setIsConnected] = useState(false);
   const [formatAsJson, setFormatAsJson] = useState(true); // 控制是否格式化为 JSON
   const [isCollapsed, setIsCollapsed] = useState(false); // 控制 JSON 是否折叠
+  const { toast } = useToast()
 
   const clientRef = useRef<Client | null>(null);
   const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
@@ -40,21 +42,45 @@ export default function StompWebSocketPage() {
         onStompError: (frame) => {
           console.error("连接错误: " + frame.headers["message"]);
           setIsConnected(false);
+          toast({
+            title: "连接错误.",
+            description: "There was a problem with your request.",
+          })
         },
         onDisconnect: () => {
           setIsConnected(false);
+        },
+        onWebSocketError: (error) => {
+          showToast("连接错误.", "There was a problem with your request.");
+          console.error("onWebSocketError 错误:", error);
+          setIsConnected(false);
+          if(clientRef.current){
+            clientRef.current.deactivate();
+          }
+          
+          
         },
       });
     }
 
     return () => {
       if (clientRef.current) {
-        clientRef.current.deactivate();
+        try {
+          clientRef.current.activate();
+        } catch (error) {
+          console.error("连接激活失败:", error);
+          console.log("调用 toast 函数前的检查");
+          toast({
+            title: "连接错误.",
+            description: (error as Error).message,
+          });
+        }
       }
     };
   }, [socketUrl]);
 
   const connectToStomp = () => {
+    console.log("尝试连接 WebSocket 客户端:", socketUrl);
     if (clientRef.current) {
       clientRef.current.activate();
     }
@@ -112,6 +138,13 @@ export default function StompWebSocketPage() {
 
   const clearMessages = () => {
     setMessages([]); // 清空消息
+  };
+
+  const showToast = (title: string, description: string) => {
+    toast({
+      title: title,
+      description: description,
+    });
   };
 
   return (
