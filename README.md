@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Next.js WebSocket 应用
 
-## Getting Started
+这是一个基于 [Next.js](https://nextjs.org) 的 WebSocket 应用程序，使用 [STOMP](https://stomp.github.io/) 协议进行消息传递。该应用允许用户连接到 WebSocket 服务器、订阅主题、发送和接收消息，并以 JSON 或原始字符串格式查看消息。
 
-First, run the development server:
+## 功能特点
+
+- **WebSocket 连接管理**：支持连接和断开 WebSocket 服务器。
+- **主题订阅**：用户可以订阅不同的主题以接收特定的消息。
+- **消息发送**：用户可以发送自定义的 JSON 消息到指定的目的地。
+- **消息接收**：接收到的消息可以以 JSON 格式或原始字符串格式显示。
+- **消息格式化和折叠**：支持消息的格式化显示和折叠功能。
+
+## 截图
+
+![应用截图](./screenshot.png)
+
+## 快速开始
+
+### 克隆项目
+
+首先，克隆项目仓库：
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+
+pnpm install
+
 pnpm dev
-# or
-bun dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 查看应用
+打开浏览器访问 http://localhost:3000 查看应用效果。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 许可证
+本项目采用 MIT 许可证 许可。

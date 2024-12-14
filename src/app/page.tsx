@@ -75,7 +75,7 @@ export default function StompWebSocketPage() {
     return () => {
       if (clientRef.current) {
         try {
-          clientRef.current.activate();
+          clientRef.current.deactivate();
         } catch (error) {
           console.error("连接激活失败:", error);
           console.log("调用 toast 函数前的检查");
