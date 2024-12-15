@@ -1,7 +1,7 @@
 "use client";
 
 import { Client } from "@stomp/stompjs";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,12 +10,15 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import ReactJson from "react-json-view";
+
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import {  useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { LoaderCircle } from "lucide-react";
+import dynamic from "next/dynamic";
+// import ReactJson from "react-json-view";
+const ReactJson = dynamic(() => import("react-json-view"), { ssr: false });
 
 export default function StompWebSocketPage() {
   const [socketUrl, setSocketUrl] = useState("ws://localhost:8080/ws");
@@ -28,78 +31,12 @@ export default function StompWebSocketPage() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [formatAsJson, setFormatAsJson] = useState(true); // 控制是否格式化为 JSON
   const [isCollapsed, setIsCollapsed] = useState(false); // 控制 JSON 是否折叠
-  const { toast } = useToast()
+  const { toast } = useToast();
 
   const clientRef = useRef<Client | null>(null);
   const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      clientRef.current = new Client({
-        brokerURL: socketUrl,
-        onConnect: () => {
-          
-          console.log("连接成功:", socketUrl);
-          setIsConnected(true);
-          subscribeToTopic();
-          setTimeout(() => {
-            setIsConnecting(false);
-            },1000)
-        },
-        onStompError: (frame) => {
-          console.error("连接错误: " + frame.headers["message"]);
-          setIsConnected(false);
-          toast({
-            title: "连接错误.",
-            description: "There was a problem with your request.",
-          })
-        },
-        onDisconnect: () => {
-          setIsConnected(false);
-        },
-        onWebSocketError: (error) => {
-          
-          showToast("连接错误.", 'onWebSocketError');
-          console.error("onWebSocketError 错误:", error);
-          setIsConnected(false);
-          if(clientRef.current){
-            clientRef.current.deactivate();
-          }
-          setTimeout(() => {
-          setIsConnecting(false);
-          },1000)
-        },
-      });
-    }
-
-    return () => {
-      if (clientRef.current) {
-        try {
-          clientRef.current.deactivate();
-        } catch (error) {
-          console.error("连接激活失败:", error);
-          console.log("调用 toast 函数前的检查");
-          toast({
-            title: "连接错误.",
-            description: (error as Error).message,
-          });
-        }
-      }
-    };
-  }, [socketUrl]);
-
-  const connectToStomp = () => {
-    if(!isConnecting){
-      console.log("尝试连接 WebSocket 客户端:", socketUrl);
-      setIsConnecting(true);
-      if (clientRef.current) {
-        clientRef.current.activate();
-      }
-    }
-    
-  };
-
-  const subscribeToTopic = () => {
+  const subscribeToTopic = useCallback(() => {
     console.log("尝试订阅主题:", topic);
     if (clientRef.current && isConnected) {
       if (subscriptionRef.current) {
@@ -118,6 +55,76 @@ export default function StompWebSocketPage() {
         }
       );
       console.log("订阅成功:", topic);
+    }
+  }, [clientRef, isConnected, setMessages, topic]);
+
+  useEffect(() => {
+    const showToast = (title: string, description: string) => {
+      toast({
+        title: title,
+        description: description,
+      });
+    };
+
+    if (typeof window !== "undefined") {
+      clientRef.current = new Client({
+        brokerURL: socketUrl,
+        onConnect: () => {
+          console.log("连接成功:", socketUrl);
+          setIsConnected(true);
+          subscribeToTopic();
+          setTimeout(() => {
+            setIsConnecting(false);
+          }, 1000);
+        },
+        onStompError: (frame) => {
+          console.error("连接错误: " + frame.headers["message"]);
+          setIsConnected(false);
+          toast({
+            title: "连接错误.",
+            description: "There was a problem with your request.",
+          });
+        },
+        onDisconnect: () => {
+          setIsConnected(false);
+        },
+        onWebSocketError: (error) => {
+          showToast("连接错误.", 'onWebSocketError');
+          console.error("onWebSocketError 错误:", error);
+          setIsConnected(false);
+          if (clientRef.current) {
+            clientRef.current.deactivate();
+          }
+          setTimeout(() => {
+            setIsConnecting(false);
+          }, 1000);
+        },
+      });
+    }
+
+    return () => {
+      if (clientRef.current) {
+        try {
+          clientRef.current.deactivate();
+        } catch (error) {
+          console.error("连接激活失败:", error);
+          console.log("调用 toast 函数前的检查");
+          toast({
+            title: "连接错误.",
+            description: (error as Error).message,
+          });
+        }
+      }
+    };
+  }, [socketUrl, topic, isConnected, setMessages, toast, subscribeToTopic]);
+
+  const connectToStomp = () => {
+    if (!isConnecting) {
+      console.log("尝试连接 WebSocket 客户端:", socketUrl);
+      setIsConnecting(true);
+      if (clientRef.current) {
+        clientRef.current.activate();
+      }
     }
   };
 
@@ -154,13 +161,6 @@ export default function StompWebSocketPage() {
     setMessages([]); // 清空消息
   };
 
-  const showToast = (title: string, description: string) => {
-    toast({
-      title: title,
-      description: description,
-    });
-  };
-
   return (
     <div className="mx-full">
       <ResizablePanelGroup direction="horizontal">
@@ -179,7 +179,7 @@ export default function StompWebSocketPage() {
                   onClick={connectToStomp}
                   className="bg-blue-500 text-white "
                 >
-                  {isConnecting?<LoaderCircle className=" animate-spin"  />:'连接'}
+                  {isConnecting ? <LoaderCircle className="animate-spin" /> : '连接'}
                 </Button>
               ) : (
                 <Button
@@ -192,14 +192,13 @@ export default function StompWebSocketPage() {
             </div>
 
             {isConnected && (
-              <div className="flex  space-x-2 px-2 items-center">
+              <div className="flex space-x-2 px-2 items-center">
                 <Label htmlFor="topic" className="flex text-center w-20">主题</Label>
                 <Input
                   type="text"
                   placeholder="主题"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                 
                 />
                 <Button
                   onClick={subscribeToTopic}
@@ -212,16 +211,16 @@ export default function StompWebSocketPage() {
 
             {isConnected && (
               <div className="flex flex-col space-y-2 items-center p-2">
-                <div className="flex items-center  w-full">
-                <Label htmlFor="topic" className="flex text-center w-20">发送地址</Label>
-                <Input
-                  type="text"
-                  placeholder="发送目的地"
-                  value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
-                />
+                <div className="flex items-center w-full">
+                  <Label htmlFor="topic" className="flex text-center w-20">发送地址</Label>
+                  <Input
+                    type="text"
+                    placeholder="发送目的地"
+                    value={destination}
+                    onChange={(e) => setDestination(e.target.value)}
+                  />
                 </div>
-                
+
                 <Textarea
                   placeholder="输入 JSON 消息体"
                   value={jsonMessage}
@@ -285,7 +284,7 @@ export default function StompWebSocketPage() {
             <div className="flex my-2 bg-gray-100 gap-2 p-2">
               接收到的消息: {messages.length}
             </div>
-            <div className="rounded-md border p-4  max-h-[50vh] min-h-[80vh] overflow-y-auto ">
+            <div className="rounded-md border p-4 max-h-[50vh] min-h-[80vh] overflow-y-auto">
               <div>
                 {messages.map((msg, index) => {
                   let parsedMsg;
