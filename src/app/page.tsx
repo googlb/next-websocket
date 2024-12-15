@@ -144,6 +144,7 @@ export default function StompWebSocketPage() {
   };
 
   const disconnectFromStomp = () => {
+    console.log("尝试断开 WebSocket 客户端");
     if (clientRef.current) {
       clientRef.current.deactivate();
     }
