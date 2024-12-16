@@ -14,7 +14,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { useToastHelper } from "@/utils/toastHelper"; // 引入封装的工具类
 import { LoaderCircle } from "lucide-react";
 import dynamic from "next/dynamic";
 // import ReactJson from "react-json-view";
@@ -31,7 +31,8 @@ export default function StompWebSocketPage() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [formatAsJson, setFormatAsJson] = useState(true); // 控制是否格式化为 JSON
   const [isCollapsed, setIsCollapsed] = useState(false); // 控制 JSON 是否折叠
-  const { toast } = useToast();
+  // const { toast } = useToast();
+  const { showToast } = useToastHelper(); // 使用封装的工具方法
 
   const clientRef = useRef<Client | null>(null);
   const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
@@ -47,7 +48,7 @@ export default function StompWebSocketPage() {
         topic,
         (message) => {
           try {
-            console.log("接收到消息:", message);
+            console.log("接收到消息:", message.body);
             setMessages((prevMessages) => [message.body, ...prevMessages]);
           } catch (error) {
             console.error("消息解析错误:", error);
@@ -55,16 +56,12 @@ export default function StompWebSocketPage() {
         }
       );
       console.log("订阅成功:", topic);
+    }else{
+      console.error("无法订阅，客户端未连接或已断开");
     }
   }, [clientRef, isConnected, setMessages, topic]);
 
   useEffect(() => {
-    const showToast = (title: string, description: string) => {
-      toast({
-        title: title,
-        description: description,
-      });
-    };
 
     if (typeof window !== "undefined") {
       clientRef.current = new Client({
@@ -72,7 +69,7 @@ export default function StompWebSocketPage() {
         onConnect: () => {
           console.log("连接成功:", socketUrl);
           setIsConnected(true);
-          subscribeToTopic();
+          // // subscribeToTopic();
           setTimeout(() => {
             setIsConnecting(false);
           }, 1000);
@@ -80,12 +77,12 @@ export default function StompWebSocketPage() {
         onStompError: (frame) => {
           console.error("连接错误: " + frame.headers["message"]);
           setIsConnected(false);
-          toast({
-            title: "连接错误.",
-            description: "There was a problem with your request.",
-          });
+          showToast(
+             "连接错误.","There was a problem with your request.",
+          );
         },
         onDisconnect: () => {
+          console.log("断开连接");
           setIsConnected(false);
         },
         onWebSocketError: (error) => {
@@ -109,14 +106,11 @@ export default function StompWebSocketPage() {
         } catch (error) {
           console.error("连接激活失败:", error);
           console.log("调用 toast 函数前的检查");
-          toast({
-            title: "连接错误.",
-            description: (error as Error).message,
-          });
+
         }
       }
     };
-  }, [socketUrl, topic, isConnected, setMessages, toast, subscribeToTopic]);
+  }, [showToast, socketUrl]);
 
   const connectToStomp = () => {
     if (!isConnecting) {
